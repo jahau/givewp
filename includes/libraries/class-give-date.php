@@ -395,4 +395,43 @@ final class Give_Date extends Carbon {
 
 		return $retval;
 	}
+
+	/**
+	 * Convert string or timestamp date to Give_date
+	 *
+	 * @access public
+	 *
+	 * @param  string $date Date.
+	 *
+	 * @return Give_Date|WP_Error   If the date is invalid, a WP_Error object will be returned.
+	 */
+	public function convert_date( $date ) {
+		$rst = new WP_Error(
+			'invalid_date',
+			esc_html__( 'Improper date provided.', 'give' )
+		);
+
+		if ( array_key_exists( (string) $date, $this->get_predefined_dates() ) ) {
+
+			/* @var Give_Date $date */
+			$rst = $this->date->parse_date_for_range( $date );
+
+		} else if ( is_numeric( $date ) ) {
+			$rst = self::create(
+				date( 'Y', $date ),
+				date( 'm', $date ),
+				date( 'd', $date ),
+				date( 'G', $date ),
+				date( 'i', $date ),
+				date( 's', $date ),
+				$this->getWpTimezone()
+			);
+
+		} else if ( is_string( $date ) && false !== strtotime( $date ) ) {
+			/* @var Give_Date $date */
+			$rst = new Give_Date( $date );
+		}
+
+		return $rst;
+	}
 }
