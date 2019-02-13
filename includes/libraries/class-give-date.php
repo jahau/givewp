@@ -114,8 +114,8 @@ final class Give_Date extends Carbon {
 	 * @since  2.5.0
 	 * @access public
 	 *
-	 * @param string|array $range    Predefined date range
-	 * @param bool   $relative Flag to to get relative date or not
+	 * @param string|array $range    Predefined date range.
+	 * @param bool         $relative Flag to to get relative date or not
 	 *
 	 * @return array
 	 */
@@ -126,193 +126,163 @@ final class Give_Date extends Carbon {
 
 		$dates = array();
 
-		if ( ! $relative ) {
-			// Current date range
-			switch ( $range ) {
+		switch ( $range ) {
 
-				case 'this_month':
-					$dates = array(
+			case 'this_month':
+				$dates = ! $relative
+					? array(
 						'start' => $this->copy()->startOfMonth(),
 						'end'   => $this->copy()->endOfMonth(),
-					);
-
-					break;
-
-				case 'last_month':
-					$dates = array(
+					)
+					: array(
 						'start' => $this->copy()->subMonth( 1 )->startOfMonth(),
 						'end'   => $this->copy()->subMonth( 1 )->endOfMonth(),
 					);
-					break;
 
-				case 'today':
-					$dates = array(
-						'start' => $this->copy()->startOfDay(),
-						'end'   => $this->copy()->endOfDay(),
-					);
-					break;
+				break;
 
-				case 'yesterday':
-					$dates = array(
-						'start' => $this->copy()->subDay( 1 )->startOfDay(),
-						'end'   => $this->copy()->subDay( 1 )->endOfDay(),
-					);
-					break;
-
-				case 'this_week':
-					$dates = array(
-						'start' => $this->copy()->startOfWeek(),
-						'end'   => $this->copy()->endOfWeek(),
-					);
-					break;
-
-				case 'last_week':
-					$dates = array(
-						'start' => $this->copy()->subWeek( 1 )->startOfWeek(),
-						'end'   => $this->copy()->subWeek( 1 )->endOfWeek(),
-					);
-					break;
-
-				case 'last_30_days':
-					$dates = array(
-						'start' => $this->copy()->subDay( 30 )->startOfDay(),
-						'end'   => $this->copy()->endOfDay(),
-					);
-					break;
-
-				case 'this_quarter':
-					$dates = array(
-						'start' => $this->copy()->startOfQuarter(),
-						'end'   => $this->copy()->endOfQuarter(),
-					);
-					break;
-
-				case 'last_quarter':
-					$dates = array(
-						'start' => $this->copy()->subQuarter( 1 )->startOfQuarter(),
-						'end'   => $this->copy()->subQuarter( 1 )->endOfQuarter(),
-					);
-					break;
-
-				case 'this_year':
-					$dates = array(
-						'start' => $this->copy()->startOfYear(),
-						'end'   => $this->copy()->endOfYear(),
-					);
-					break;
-
-				case 'last_year':
-					$dates = array(
-						'start' => $this->copy()->subYear( 1 )->startOfYear(),
-						'end'   => $this->copy()->subYear( 1 )->endOfYear(),
-					);
-					break;
-
-				default:
-					$required_args     = array( 'start_date', 'end_date' );
-					$has_required_args = 2 === count( array_intersect( array_keys( $range ), $required_args ) );
-
-					$start = $end = current_time( 'timestamp' );
-
-					if ( is_array( $range ) && $has_required_args ) {
-						$start = strtotime( $range['start_date'] );
-						$end   = strtotime( $range['end_date'] );
-					}
-
-					$dates = array(
-						'start' => self::create(
-							date( 'Y', $start ),
-							date( 'm', $start ),
-							date( 'd', $start ),
-							0,
-							0,
-							0,
-							$this->getWpTimezone()
-						)->startOfDay(),
-
-						'end' => self::create(
-							date( 'Y', $end ),
-							date( 'm', $end ),
-							date( 'd', $end ),
-							0,
-							0,
-							0,
-							$this->getWpTimezone()
-						)->endOfDay(),
-					);
-					break;
-			}
-
-			// Related date range.
-		} else {
-			switch ( $range ) {
-				case 'this_month':
-					$dates = array(
+			case 'last_month':
+				$dates = ! $relative
+					? array(
 						'start' => $this->copy()->subMonth( 1 )->startOfMonth(),
 						'end'   => $this->copy()->subMonth( 1 )->endOfMonth(),
-					);
-					break;
-				case 'last_month':
-					$dates = array(
+					)
+					: $dates = array(
 						'start' => $this->copy()->subMonth( 2 )->startOfMonth(),
 						'end'   => $this->copy()->subMonth( 2 )->endOfMonth(),
 					);
-					break;
-				case 'today':
-					$dates = array(
+				break;
+
+			case 'today':
+				$dates = ! $relative
+					? array(
+						'start' => $this->copy()->startOfDay(),
+						'end'   => $this->copy()->endOfDay(),
+					)
+					: $dates = array(
 						'start' => $this->copy()->subDay( 1 )->startOfDay(),
 						'end'   => $this->copy()->subDay( 1 )->endOfDay(),
 					);
-					break;
-				case 'yesterday':
-					$dates = array(
+				break;
+
+			case 'yesterday':
+				$dates = ! $relative
+					? array(
+						'start' => $this->copy()->subDay( 1 )->startOfDay(),
+						'end'   => $this->copy()->subDay( 1 )->endOfDay(),
+					)
+					: array(
 						'start' => $this->copy()->subDay( 2 )->startOfDay(),
 						'end'   => $this->copy()->subDay( 2 )->endOfDay(),
 					);
-					break;
-				case 'this_week':
-					$dates = array(
+				break;
+
+			case 'this_week':
+				$dates = ! $relative
+					? array(
+						'start' => $this->copy()->startOfWeek(),
+						'end'   => $this->copy()->endOfWeek(),
+					)
+					: array(
 						'start' => $this->copy()->subWeek( 1 )->startOfWeek(),
 						'end'   => $this->copy()->subWeek( 1 )->endOfWeek(),
 					);
-					break;
-				case 'last_week':
-					$dates = array(
+				break;
+
+			case 'last_week':
+				$dates = ! $relative
+					? array(
+						'start' => $this->copy()->subWeek( 1 )->startOfWeek(),
+						'end'   => $this->copy()->subWeek( 1 )->endOfWeek(),
+					)
+					: array(
 						'start' => $this->copy()->subWeek( 2 )->startOfWeek(),
 						'end'   => $this->copy()->subWeek( 2 )->endOfWeek(),
 					);
-					break;
-				case 'last_30_days':
-					$dates = array(
+				break;
+
+			case 'last_30_days':
+				$dates = ! $relative
+					? array(
+						'start' => $this->copy()->subDay( 30 )->startOfDay(),
+						'end'   => $this->copy()->endOfDay(),
+					)
+					: array(
 						'start' => $this->copy()->subDay( 60 )->startOfDay(),
 						'end'   => $this->copy()->subDay( 30 )->endOfDay(),
 					);
-					break;
-				case 'this_quarter':
-					$dates = array(
+				break;
+
+			case 'this_quarter':
+				$dates = ! $relative
+					? array(
+						'start' => $this->copy()->startOfQuarter(),
+						'end'   => $this->copy()->endOfQuarter(),
+					)
+					: array(
 						'start' => $this->copy()->subQuarter( 1 )->startOfQuarter(),
 						'end'   => $this->copy()->subQuarter( 1 )->endOfQuarter(),
 					);
-					break;
-				case 'last_quarter':
-					$dates = array(
+				break;
+
+			case 'last_quarter':
+				$dates = ! $relative
+					? array(
+						'start' => $this->copy()->subQuarter( 1 )->startOfQuarter(),
+						'end'   => $this->copy()->subQuarter( 1 )->endOfQuarter(),
+					)
+					: array(
 						'start' => $this->copy()->subQuarter( 2 )->startOfQuarter(),
 						'end'   => $this->copy()->subQuarter( 2 )->endOfQuarter(),
 					);
-					break;
-				case 'this_year':
-					$dates = array(
+				break;
+
+			case 'this_year':
+				$dates = ! $relative
+					? array(
+						'start' => $this->copy()->startOfYear(),
+						'end'   => $this->copy()->endOfYear(),
+					)
+					: array(
 						'start' => $this->copy()->subYear( 1 )->startOfYear(),
 						'end'   => $this->copy()->subYear( 1 )->endOfYear(),
 					);
-					break;
-				case 'last_year':
-					$dates = array(
+				break;
+
+			case 'last_year':
+				$dates = ! $relative
+					? array(
+						'start' => $this->copy()->subYear( 1 )->startOfYear(),
+						'end'   => $this->copy()->subYear( 1 )->endOfYear(),
+					)
+					: array(
 						'start' => $this->copy()->subYear( 2 )->startOfYear(),
 						'end'   => $this->copy()->subYear( 2 )->endOfYear(),
 					);
-					break;
-			}
+				break;
+
+			default:
+				$required_args     = array( 'start_date', 'end_date' );
+				$has_required_args = 2 === count( array_intersect( array_keys( $range ), $required_args ) );
+
+				if ( is_array( $range ) && $has_required_args ) {
+					$sub_days = 0;
+					$start    = $this->convert_date( $range['start_date'] );
+					$end      = $this->convert_date( $range['end_date'] );
+
+					if( ! is_wp_error( $start ) && ! is_wp_error( $end ) ) {
+						if ( $relative ) {
+							$sub_days = (int) $start->diff( $end )->days + 1;
+						}
+
+						$dates = array(
+							'start' => $start->subDays( $sub_days ),
+							'end'   => $end->subDays( $sub_days ),
+						);
+					}
+				}
+
+				break;
 		}
 
 		return $dates;
