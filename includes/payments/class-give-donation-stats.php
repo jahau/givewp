@@ -406,6 +406,148 @@ class Give_Donation_Stats extends Give_Stats {
 		return $results;
 	}
 
+
+	/**
+	 * Retrieve donor count stats
+	 *
+	 * @since  2.5.0
+	 * @access public
+	 *
+	 * @param array $query
+	 *
+	 * @return stdClass
+	 */
+	public function get_donor_count( $query = array() ) {
+		// Extra query param.
+		$query = wp_parse_args(
+			$query,
+			array(
+				'unique'           => false,
+				'newly_registered' => false,
+			)
+		);
+
+		// Add table and column name to query_vars to assist with date query generation.
+		$this->query_vars['table']  = $this->get_db()->donationmeta;
+		$this->query_vars['column'] = 'meta_value';
+
+		// Run pre-query checks and maybe generate SQL.
+		$this->pre_query( $query );
+
+		if( $this->query_vars['newly_registered'] ){
+			$this->query_vars['inner_join_sql'] .= " INNER JOIN {$this->get_db()->donors} as d ON d.id={$this->query_vars['table']}.meta_value";
+
+			// Date sql.
+			if ( $this->query_vars["start_date"] ) {
+				$this->query_vars['date_sql'] .= " AND d.date_created>='{$this->query_vars["start_date"]->format('mysql')}'";
+			}
+
+			if ( $this->query_vars["end_date"] ) {
+				$this->query_vars['date_sql'] .= " AND d.date_created<='{$this->query_vars["end_date"]->format('mysql')}'";
+			}
+
+			// Relative date query.
+			if ( $this->query_vars["relative_start_date"] ) {
+				$this->query_vars['relative_date_sql'] .= " AND d.date_created>='{$this->query_vars["relative_start_date"]->format('mysql')}'";
+			}
+
+			if ( $this->query_vars["relative_end_date"] ) {
+				$this->query_vars['relative_date_sql'] .= " AND d.date_created<='{$this->query_vars["relative_end_date"]->format('mysql')}'";
+			}
+		}
+
+		if ( $cache = $this->get_cache() ) {
+			$this->reset_query();
+
+			return $cache;
+		}
+
+		/**
+		 * Return custom result
+		 *
+		 * @since 2.5.0
+		 */
+		$result = apply_filters( 'give_donation_stats_pre_get_donor_count', null, $this );
+		if ( ! is_null( $result ) ) {
+			$this->set_cache( $result );
+			$this->reset_query();
+
+			return $result;
+		}
+
+		$allowed_functions = array( 'COUNT', 'AVG' );
+
+		$is_relative = true === $this->query_vars['relative'];
+
+		$column = $this->query_vars['unique']
+			? "DISTINCT({$this->query_vars['table']}.{$this->query_vars['column']})"
+			: "{$this->query_vars['table']}.{$this->query_vars['column']}";
+
+		$function = isset( $this->query_vars['function'] ) && in_array( $this->query_vars['function'], $allowed_functions, true )
+			? "{$this->query_vars['function']}({$column})"
+			: "COUNT({$column})";
+
+		if ( $is_relative ) {
+			$this->sql = "SELECT IFNULL(COUNT({$column}), 0) AS result, IFNULL(relative, 0) AS relative
+					FROM {$this->query_vars['table']}
+					CROSS JOIN (
+						SELECT IFNULL(COUNT({$column}), 0) AS relative
+						FROM {$this->query_vars['table']}
+						{$this->query_vars['inner_join_sql']}
+						{$this->query_vars['where_sql']}
+						{$this->query_vars['relative_date_sql']}
+						AND {$this->query_vars['table']}.meta_key='_give_payment_donor_id'
+						{$this->query_vars['limit_sql']}
+					) o
+					{$this->query_vars['inner_join_sql']}
+					{$this->query_vars['where_sql']}
+					{$this->query_vars['date_sql']}
+					AND {$this->query_vars['table']}.meta_key='_give_payment_donor_id'
+					{$this->query_vars['limit_sql']}
+					";
+		} else {
+			$this->sql = "SELECT IFNULL({$function}, 0) AS result
+					FROM {$this->query_vars['table']}
+					{$this->query_vars['inner_join_sql']}
+					{$this->query_vars['where_sql']}
+					{$this->query_vars['date_sql']}
+					AND {$this->query_vars['table']}.meta_key='_give_payment_donor_id'
+					{$this->query_vars['limit_sql']}
+					";
+		}
+
+		/**
+		 * Filter the sql query
+		 *
+		 * @since 2.5.0
+		 */
+		$this->sql = apply_filters( 'give_donation_stats_get_donor_count_sql', $this->sql, $this );
+
+		$result = $this->get_db()->get_row( $this->sql );
+
+		if ( is_null( $result ) ) {
+			$result        = new stdClass();
+			$result->result = $result->relative = 0;
+		}
+
+		if ( $is_relative ) {
+			$result->growth = $this->get_growth( $result->result, $result->relative );
+		}
+
+		// Reset query vars.
+		$this->build_result( $result );
+		$this->reset_query();
+
+		/**
+		 * Filter the result
+		 *
+		 * @since 2.5.0
+		 */
+		$result = apply_filters( 'give_donation_stats_get_donor_count', $result, $this );
+
+		return $result;
+	}
+
 	/**
 	 * Get the best selling forms
 	 *
