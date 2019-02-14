@@ -203,14 +203,12 @@ class Give_Donation_Stats extends Give_Stats {
 					CROSS JOIN (
 						SELECT IFNULL($function, 0) AS relative
 						FROM {$this->query_vars['table']}
-						INNER JOIN {$this->get_db()->posts} on {$this->get_db()->posts}.ID = {$this->query_vars['table']}.{$this->get_donation_id_column()}
 						{$this->query_vars['inner_join_sql']}
 						{$this->query_vars['where_sql']}
 						{$this->query_vars['relative_date_sql']}
 						AND {$this->query_vars['table']}.meta_key='_give_payment_total'
 						{$this->query_vars['limit_sql']}
 					) o
-					INNER JOIN {$this->get_db()->posts} on {$this->get_db()->posts}.ID = {$this->query_vars['table']}.{$this->get_donation_id_column()}
 					{$this->query_vars['inner_join_sql']}
 					{$this->query_vars['where_sql']}
 					{$this->query_vars['date_sql']}
@@ -220,7 +218,6 @@ class Give_Donation_Stats extends Give_Stats {
 		} else {
 			$this->sql = "SELECT IFNULL({$function}, 0) AS total
 					FROM {$this->query_vars['table']}
-					INNER JOIN {$this->get_db()->posts} on {$this->get_db()->posts}.ID = {$this->query_vars['table']}.{$this->get_donation_id_column()}
 					{$this->query_vars['inner_join_sql']}
 					{$this->query_vars['where_sql']}
 					{$this->query_vars['date_sql']}
@@ -515,7 +512,6 @@ class Give_Donation_Stats extends Give_Stats {
 
 		$this->sql = "SELECT {$this->query_vars['table']}.{$this->query_vars['column']} as form, COUNT({$this->query_vars['table']}.{$donation_col_name}) as total_donation
 			FROM {$this->query_vars['table']}
-			INNER JOIN {$this->get_db()->posts} ON {$this->query_vars['table']}.{$donation_col_name}={$this->get_db()->posts}.ID
 			{$this->query_vars['inner_join_sql']}
 			{$this->query_vars['where_sql']}
 			{$this->query_vars['date_sql']}
@@ -649,6 +645,11 @@ class Give_Donation_Stats extends Give_Stats {
 			}
 		}
 		$this->query_vars['where_sql'][] = $this->get_db()->prepare( "AND {$this->get_db()->posts}.post_type=%s", 'give_payment' );
+
+		// Inner join sql
+		if( $this->get_db()->donationmeta === $this->query_vars['table'] ){
+			$this->query_vars['inner_join_sql'][] = "INNER JOIN {$this->get_db()->posts} on {$this->get_db()->posts}.ID = {$this->query_vars['table']}.{$this->get_donation_id_column()}";
+		}
 
 		// Date sql.
 		if ( $this->query_vars["start_date"] ) {
