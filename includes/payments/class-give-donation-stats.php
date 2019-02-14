@@ -295,13 +295,29 @@ class Give_Donation_Stats extends Give_Stats {
 		// Set query on basis of statistic type
 		switch ( $query['statistic_type'] ) {
 			case 'time':
+				switch ( $this->query_vars['statistic_by'] ) {
+					case 'hour':
+						$default_statistic_by_query['select'][]  = "HOUR({$column}) AS hour";
+						$default_statistic_by_query['groupby'][] = "HOUR({$column})";
+						$default_statistic_by_query['orderby']   = $default_statistic_by_query['groupby'];
+
+					case 'day':
+						$default_statistic_by_query['select'][]  = "DAY({$column}) AS day";
+						$default_statistic_by_query['groupby'][] = "DAY({$column})";
+						$default_statistic_by_query['orderby']   = $default_statistic_by_query['groupby'];
+				}
+
+				$default_statistic_by_query['select'][]  = "YEAR({$column}) AS year, MONTH({$column}) AS month";
+				$default_statistic_by_query['groupby'][] = "YEAR({$column}), MONTH({$column})";
+				$default_statistic_by_query['orderby']   = $default_statistic_by_query['groupby'];
+
+				foreach ( $default_statistic_by_query as $type => $data ){
+					$default_statistic_by_query[$type] = implode( ', ', array_reverse( $data ) );
+				}
+
 				$this->query_vars = array_merge(
 					$this->query_vars,
-					array(
-						'select'  => "YEAR({$column}) AS year, MONTH({$column}) AS month, DAY({$column}) AS day",
-						'groupby' => "YEAR({$column}), MONTH({$column}), DAY({$column})",
-						'orderby' => "YEAR({$column}), MONTH({$column}), DAY({$column})",
-					)
+					$default_statistic_by_query
 				);
 				break;
 
@@ -352,41 +368,74 @@ class Give_Donation_Stats extends Give_Stats {
 		if( ! empty( $results ) ) {
 			switch ( $this->query_vars['statistic_type'] ) {
 				case 'time':
-					$this->query_vars['day_by_day'] = true;
-
 					$result_count = count( $results );
 
+					/* @var Give_Date[] $dates */
 					$dates = array(
 						'start' => ! empty( $this->query_vars['start_date'] )
 							? $this->query_vars['start_date']
-							: Give_Date::create( $results[0]->year, $results[0]->month, $results[0]->day, 0, 0, 0, $this->date->getWpTimezone() ),
+							: Give_Date::create(
+								$results[0]->year,
+								$results[0]->month,
+								property_exists( $results[0], 'day' ) ? $results[0]->day : 0,
+								property_exists( $results[0], 'hour' ) ? $results[0]->hour : 0,
+								0,
+								0,
+								$this->date->getWpTimezone()
+							),
 						'end'   => ! empty( $this->query_vars['end_date'] )
 							? $this->query_vars['end_date']
-							: Give_Date::create( $results[ $result_count - 1 ]->year, $results[ $result_count - 1 ]->month, $results[ $result_count - 1 ]->day, 23, 59, 59, $this->date->getWpTimezone() ),
+							: Give_Date::create(
+								$results[ $result_count - 1 ]->year,
+								$results[ $result_count - 1 ]->month,
+								property_exists( $results[ $result_count - 1 ], 'day' ) ? $results[ $result_count - 1 ]->day : 0,
+								23,
+								59,
+								59,
+								$this->date->getWpTimezone()
+							),
 					);
-
-					$cache_timestamps = array();
 
 					// Initialise all arrays with timestamps and set values to 0.
 					while ( strtotime( $dates['start']->copy()->format( 'mysql' ) ) <= strtotime( $dates['end']->copy()->format( 'mysql' ) ) ) {
-						$timestamp = Give_Date::create( $dates['start']->year, $dates['start']->month, $dates['start']->day, 0, 0, 0, $this->date->getWpTimezone() )->timestamp;
-
-						$cache_timestamps["{$dates['start']->year}|{$dates['start']->month}|{$dates['start']->day}"] = $timestamp;
+						$timestamp = Give_Date::create(
+							$dates['start']->year,
+							$dates['start']->month,
+							$dates['start']->day,
+							$dates['start']->hour,
+							0,
+							0,
+							$this->date->getWpTimezone()
+						)->timestamp;
 
 						$sales[ $timestamp ]    = 0;
 						$earnings[ $timestamp ] = 0.00;
 
-						$dates['start'] = ( true === $this->query_vars['day_by_day'] )
-							? $dates['start']->addDays( 1 )
-							: $dates['start']->addMonth( 1 );
+						switch ( $this->query_vars['statistic_by'] ) {
+							case 'hour':
+								$dates['start'] = $dates['start']->addHour();
+								break;
+
+							case 'day':
+								$dates['start'] = $dates['start']->addDay();
+								break;
+
+							case 'month':
+								$dates['start'] = $dates['start']->addMonth();
+								break;
+						}
 					}
 
 					foreach ( $results as $result ) {
-						$cache_key = "{$result->year}|{$result->month}|{$result->day}";
-
-						$timestamp = ! empty( $cache_timestamps[ $cache_key ] )
-							? $cache_timestamps[ $cache_key ]
-							: Give_Date::create( $result->year, $result->month, $result->day, 0, 0, 0, $this->date->getWpTimezone() )->timestamp;
+						$timestamp = Give_Date::create(
+							$result->year,
+							$result->month,
+							property_exists( $result, 'day' ) ? $result->day : 0,
+							property_exists( $result, 'hour' ) ? $result->hour : 0,
+							0,
+							0,
+							$this->date->getWpTimezone()
+						)->timestamp;
 
 						$sales[ $timestamp ]    = (int) $result->sales;
 						$earnings[ $timestamp ] = floatval( $result->earnings );
@@ -835,6 +884,25 @@ class Give_Donation_Stats extends Give_Stats {
 
 			if( ! empty( $this->query_vars['offset'] ) ) {
 				$this->query_vars['limit_sql'] .= " OFFSET {$this->query_vars['offset']}";
+			}
+		}
+
+		if (
+			! empty( $this->query_vars['statistic_type'] )
+			&& empty( $this->query_vars['statistic_by'] )
+		) {
+
+			$this->query_vars['statistic_by'] = 'day';
+
+			if( ! empty( $this->query_vars['range'] ) ) {
+				if ( in_array( $this->query_vars['range'], array( 'today', 'yesterday' ) ) ) {
+					$this->query_vars['statistic_by'] = 'hour';
+				}elseif (in_array( $this->query_vars['range'], array( 'this_year', 'last_year' ) ) ){
+					$this->query_vars['statistic_by'] = 'month';
+				}
+			}elseif ( $this->query_vars['start_date'] && $this->query_vars['end_date'] ){
+				$difference = ( $this->query_vars['start_date']->getTimestamp() - $this->query_vars['start_date']->getTimestamp() );
+				$this->query_vars['statistic_by'] = ( $difference >= ( YEAR_IN_SECONDS / 4 ) ) ? 'month' : 'day';
 			}
 		}
 	}
