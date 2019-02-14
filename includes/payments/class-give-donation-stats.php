@@ -104,7 +104,7 @@ class Give_Donation_Stats extends Give_Stats {
 						{$this->query_vars['relative_date_sql']}
 						{$this->query_vars['limit_sql']}
 					) o
-  
+  					{$this->query_vars['inner_join_sql']}
 					{$this->query_vars['where_sql']}
 					{$this->query_vars['date_sql']}
 					{$this->query_vars['limit_sql']}
