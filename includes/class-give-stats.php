@@ -206,7 +206,7 @@ class Give_Stats {
 				$this->query_vars['relative_start_date'] = $relative['start'];
 			}
 
-			if ( empty( $this->query_vars['relative_end_date'] ) ) {
+			if ( ! empty( $this->query_vars['relative_end_date'] ) ) {
 				$this->query_vars['relative_end_date'] = new Give_Date( $this->query_vars['relative_end_date'] );
 			}else{
 				$this->query_vars['relative_end_date'] = $relative['end'];
