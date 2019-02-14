@@ -185,13 +185,13 @@ class Give_Stats {
 
 		if ( ! empty( $this->query_vars['start_date'] ) ) {
 			$this->query_vars['start_date'] = new Give_Date( $this->query_vars['start_date'] );
-		}else{
+		} elseif ( $range ) {
 			$this->query_vars['start_date'] = $current['start'];
 		}
 
 		if ( ! empty( $this->query_vars['end_date'] ) ) {
 			$this->query_vars['end_date'] = new Give_Date( $this->query_vars['end_date'] );
-		}else{
+		} elseif ( $range ) {
 			$this->query_vars['end_date'] = $current['end'];
 		}
 
@@ -202,13 +202,13 @@ class Give_Stats {
 
 			if ( ! empty( $this->query_vars['relative_start_date'] ) ) {
 				$this->query_vars['relative_start_date'] = new Give_Date( $this->query_vars['relative_start_date'] );
-			}else{
+			} elseif ( $range ) {
 				$this->query_vars['relative_start_date'] = $relative['start'];
 			}
 
 			if ( ! empty( $this->query_vars['relative_end_date'] ) ) {
 				$this->query_vars['relative_end_date'] = new Give_Date( $this->query_vars['relative_end_date'] );
-			}else{
+			} elseif ( $range ) {
 				$this->query_vars['relative_end_date'] = $relative['end'];
 			}
 		}
