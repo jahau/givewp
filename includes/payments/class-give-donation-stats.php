@@ -349,49 +349,57 @@ class Give_Donation_Stats extends Give_Stats {
 		$sales    = array();
 		$earnings = array();
 
-		switch ( $this->query_vars['statistic_type'] ) {
-			case 'time':
-				$this->query_vars['day_by_day'] = true;
+		if( ! empty( $results ) ) {
+			switch ( $this->query_vars['statistic_type'] ) {
+				case 'time':
+					$this->query_vars['day_by_day'] = true;
 
-				$dates = array(
-					'start' => $this->query_vars['start_date'],
-					'end'   => $this->query_vars['end_date'],
-				);
+					$result_count = count( $results );
 
-				$cache_timestamps = array();
+					$dates = array(
+						'start' => ! empty( $this->query_vars['start_date'] )
+							? $this->query_vars['start_date']
+							: Give_Date::create( $results[0]->year, $results[0]->month, $results[0]->day, 0, 0, 0, $this->date->getWpTimezone() ),
+						'end'   => ! empty( $this->query_vars['end_date'] )
+							? $this->query_vars['end_date']
+							: Give_Date::create( $results[ $result_count - 1 ]->year, $results[ $result_count - 1 ]->month, $results[ $result_count - 1 ]->day, 23, 59, 59, $this->date->getWpTimezone() ),
+					);
 
-				// Initialise all arrays with timestamps and set values to 0.
-				while ( strtotime( $dates['start']->copy()->format( 'mysql' ) ) <= strtotime( $dates['end']->copy()->format( 'mysql' ) ) ) {
-					$timestamp = Give_Date::create( $dates['start']->year, $dates['start']->month, $dates['start']->day, 0, 0, 0, $this->date->getWpTimezone() )->timestamp;
+					$cache_timestamps = array();
 
-					$cache_timestamps["{$dates['start']->year}|{$dates['start']->month}|{$dates['start']->day}"] = $timestamp;
+					// Initialise all arrays with timestamps and set values to 0.
+					while ( strtotime( $dates['start']->copy()->format( 'mysql' ) ) <= strtotime( $dates['end']->copy()->format( 'mysql' ) ) ) {
+						$timestamp = Give_Date::create( $dates['start']->year, $dates['start']->month, $dates['start']->day, 0, 0, 0, $this->date->getWpTimezone() )->timestamp;
 
-					$sales[ $timestamp ]    = 0;
-					$earnings[ $timestamp ] = 0.00;
+						$cache_timestamps["{$dates['start']->year}|{$dates['start']->month}|{$dates['start']->day}"] = $timestamp;
 
-					$dates['start'] = ( true === $this->query_vars['day_by_day'] )
-						? $dates['start']->addDays( 1 )
-						: $dates['start']->addMonth( 1 );
-				}
+						$sales[ $timestamp ]    = 0;
+						$earnings[ $timestamp ] = 0.00;
 
-				foreach ( $results as $result ) {
-					$cache_key = "{$result->year}|{$result->month}|{$result->day}";
+						$dates['start'] = ( true === $this->query_vars['day_by_day'] )
+							? $dates['start']->addDays( 1 )
+							: $dates['start']->addMonth( 1 );
+					}
 
-					$timestamp = ! empty( $cache_timestamps[ $cache_key ] )
-						? $cache_timestamps[ $cache_key ]
-						: Give_Date::create( $result->year, $result->month, $result->day, 0, 0, 0, $this->date->getWpTimezone() )->timestamp;
+					foreach ( $results as $result ) {
+						$cache_key = "{$result->year}|{$result->month}|{$result->day}";
 
-					$sales[ $timestamp ]    = (int) $result->sales;
-					$earnings[ $timestamp ] = floatval( $result->earnings );
-				}
+						$timestamp = ! empty( $cache_timestamps[ $cache_key ] )
+							? $cache_timestamps[ $cache_key ]
+							: Give_Date::create( $result->year, $result->month, $result->day, 0, 0, 0, $this->date->getWpTimezone() )->timestamp;
 
-				break;
+						$sales[ $timestamp ]    = (int) $result->sales;
+						$earnings[ $timestamp ] = floatval( $result->earnings );
+					}
 
-			case 'form':
-				foreach ( $results as $result ) {
-					$sales[ $result->form ]    = (int) $result->sales;
-					$earnings[ $result->form ] = floatval( $result->earnings );
-				}
+					break;
+
+				case 'form':
+					foreach ( $results as $result ) {
+						$sales[ $result->form ]    = (int) $result->sales;
+						$earnings[ $result->form ] = floatval( $result->earnings );
+					}
+			}
 		}
 
 		$results = new stdClass();
