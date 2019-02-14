@@ -769,12 +769,7 @@ class Give_Donation_Stats extends Give_Stats {
 
 		$this->query_vars['function'] = strtoupper( $this->query_vars['function'] );
 
-		$sql_types = array( 'relative_date_sql', 'date_sql', 'inner_join_sql', 'where_sql' );
-
-		// Set empty sql collection string to array
-		foreach ( $sql_types as $sql_type ) {
-			$this->query_vars[ $sql_type ] = array_filter( (array) $this->query_vars[ $sql_type ] );
-		}
+		$sql_types = array( 'relative_date_sql', 'date_sql', 'inner_join_sql', 'where_sql', 'limit_sql' );
 
 		// Where sql.
 		if ( ! empty( $this->query_vars['status'] ) ) {
@@ -824,7 +819,7 @@ class Give_Donation_Stats extends Give_Stats {
 		foreach ( $sql_types as $sql_type ) {
 			$this->query_vars[ $sql_type ] = is_array( $this->query_vars[ $sql_type ] )
 				? implode( ' ', $this->query_vars[ $sql_type ] )
-				: $this->query_vars[ $sql_type ];
+				: (string) $this->query_vars[ $sql_type ];
 		}
 
 		if( empty( $this->query_vars['limit_sql'] ) && ! empty( $this->query_vars['number'] ) ) {
